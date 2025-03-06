@@ -87,16 +87,20 @@ class App {
 		this.grassParams = {
 			bladeHeight: 15,
 			bladeHeightVariation: 0.4,
-			bladeWidth: 0.1,
-			grassBlades: 50000,
+			bladeWidth: 0.5,
+			grassBlades: 100000,
 			windSpeed: 3.0,
-			windIntensity: 0.5,
+			windIntensity: 1.4,
 			windTurbulence: 0.7,
 			windDirectionX: 1,
 			windDirectionY: 0,
 			windDirectionZ: 1,
 			grassColorBottom: 0x0c3302,
-			grassColorTop: 0x7f7f19
+			grassColorTop: 0x7f7f19,
+			windGustFrequency: 0.15,    // How frequently gusts occur
+			windGustIntensity: 0.35,    // How strong gusts are
+			microMovement: 0.2,         // Small, independent blade movements
+			wavePropagation: 0.05,  
 		};
 
 		// Initialize DAT.GUI for interactive parameter adjustment
@@ -167,7 +171,11 @@ class App {
 				windSpeed: this.grassParams.windSpeed,
 				windDirection: windDirection,
 				windIntensity: this.grassParams.windIntensity,
-				windTurbulence: this.grassParams.windTurbulence
+				windTurbulence: this.grassParams.windTurbulence,
+				gustFrequency: this.grassParams.windGustFrequency,
+				gustIntensity: this.grassParams.windGustIntensity,
+				microMovement: this.grassParams.microMovement,
+				wavePropagation: this.grassParams.wavePropagation
 			});
 		}
 	}
