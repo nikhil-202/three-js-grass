@@ -3,6 +3,7 @@ import * as THREE from 'three';
 export function createGrassMesh(options = {}) {
     const {
         bladeHeight = 15,
+        bladeHeightVariation = 0.4, // New parameter for height variation (40% by default)
         bladeWidth = 0.1,
         grassBlades = 500000,
         grassPatchSize = 200,
@@ -19,7 +20,10 @@ export function createGrassMesh(options = {}) {
 
     const windDirection = new THREE.Vector3(windDirectionX, windDirectionY, windDirectionZ);
 
-    const generateBladeVertices = (bladeHeight, bladeWidth, verticesCount) => {
+    const generateBladeVertices = (baseBladeHeight, bladeWidth, verticesCount) => {
+        // Randomize the blade height for this particular blade
+        const actualBladeHeight = baseBladeHeight * (1 - bladeHeightVariation/2 + Math.random() * bladeHeightVariation);
+        
         const vertices = new Float32Array(verticesCount * 3);
 
         vertices[0] = -bladeWidth / 2;
@@ -27,15 +31,15 @@ export function createGrassMesh(options = {}) {
         vertices[2] = 0;
 
         vertices[(verticesCount - 1) * 3] = bladeWidth / 2;
-        vertices[(verticesCount - 1) * 3 + 1] = bladeHeight;
+        vertices[(verticesCount - 1) * 3 + 1] = actualBladeHeight;
         vertices[(verticesCount - 1) * 3 + 2] = 0;
 
         for (let i = 1; i < verticesCount - 1; i++) {
             const t = i / (verticesCount - 1);
-            const curveFactor = Math.sin(Math.PI * t) * bladeHeight * 0.2;
+            const curveFactor = Math.sin(Math.PI * t) * actualBladeHeight * 0.2;
 
             vertices[i * 3] = (Math.random() - 0.5) * bladeWidth * (1 - Math.abs(t - 0.5) * 2);
-            vertices[i * 3 + 1] = t * bladeHeight + curveFactor;
+            vertices[i * 3 + 1] = t * actualBladeHeight + curveFactor;
             vertices[i * 3 + 2] = (Math.random() - 0.5) * 0.05;
         }
 
@@ -58,12 +62,25 @@ export function createGrassMesh(options = {}) {
         return indices;
     };
 
+    // We need to create an array to store individual blade heights
+    const bladeHeights = new Float32Array(grassBlades);
+    for (let i = 0; i < grassBlades; i++) {
+        bladeHeights[i] = bladeHeight * (1 - bladeHeightVariation/2 + Math.random() * bladeHeightVariation);
+    }
+
     const vertices = generateBladeVertices(bladeHeight, bladeWidth, verticesPerBlade);
     const indices = generateBladeIndices(verticesPerBlade);
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
     geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+
+    // Add a new attribute to pass blade heights to the shader
+    const instanceBladeHeights = new Float32Array(grassBlades);
+    for (let i = 0; i < grassBlades; i++) {
+        instanceBladeHeights[i] = bladeHeights[i];
+    }
+    geometry.setAttribute('aBladeHeight', new THREE.InstancedBufferAttribute(instanceBladeHeights, 1));
 
     const grassMaterial = new THREE.ShaderMaterial({
         uniforms: {
@@ -78,8 +95,8 @@ export function createGrassMesh(options = {}) {
             uBladeHeight: { value: bladeHeight },
             uBladeWidth: { value: bladeWidth }
         },
-        transparent: true,
-        depthTest: false,
+        // transparent: true,
+        // depthTest: false,
         vertexShader: `
         uniform float uTime;
         uniform float uWindSpeed;
@@ -91,6 +108,8 @@ export function createGrassMesh(options = {}) {
         uniform float uWindIntensity;
         uniform float uBladeHeight;
         uniform float uBladeWidth;
+        
+        attribute float aBladeHeight; // Individual blade height attribute
         
         varying vec3 vColor;
         
@@ -153,6 +172,7 @@ export function createGrassMesh(options = {}) {
         }
         
         void main() {
+            // Use the instance-specific blade height for color calculation
             float t = position.y / uBladeHeight;
             vColor = mix(uColorBottom, uColorTop, t);
             
@@ -163,7 +183,12 @@ export function createGrassMesh(options = {}) {
             float noise1 = snoise(vec3(instancePos.xz * 0.15, windTime * 0.3));
             float noise2 = snoise(vec3(instancePos.xz * 0.1, windTime * 0.2));
             
-            float heightFactor = pow(position.y / uBladeHeight, 1.5);
+            // Scale the vertex Y position by the ratio of this blade's height to the base height
+            float heightRatio = aBladeHeight / uBladeHeight;
+            vec3 scaledPosition = position;
+            scaledPosition.y *= heightRatio;
+            
+            float heightFactor = pow(scaledPosition.y / aBladeHeight, 1.5);
             
             vec3 windVector = normalize(uWindDirection);
             float windIntensity = (
@@ -175,7 +200,7 @@ export function createGrassMesh(options = {}) {
                          heightFactor * 
                          (1.0 + uWindNoiseFactor * (noise1 + noise2));
             
-            vec4 worldPos = instanceMatrix * vec4(position, 1.0);
+            vec4 worldPos = instanceMatrix * vec4(scaledPosition, 1.0);
             worldPos.x += windVector.x * sway * 2.0;
             worldPos.z += windVector.z * sway * 2.0;
             

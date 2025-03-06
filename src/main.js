@@ -86,6 +86,7 @@ class App {
 		// Default parameters for grass and wind simulation
 		this.grassParams = {
 			bladeHeight: 15,
+			bladeHeightVariation: 0.4,
 			bladeWidth: 0.1,
 			grassBlades: 50000,
 			windSpeed: 3.0,
@@ -104,10 +105,13 @@ class App {
 		// Folder for grass blade parameters
 		const bladeFolder = this.gui.addFolder('Blade Parameters');
 		bladeFolder.add(this.grassParams, 'bladeHeight', 5, 25)
-			.onChange(this.recreateGrass.bind(this))
+			.onFinishChange(this.recreateGrass.bind(this))
 			.name('Blade Height');
+		bladeFolder.add(this.grassParams, 'bladeHeightVariation', 0, 1)
+			.onFinishChange(this.recreateGrass.bind(this))
+			.name('Height Variation');
 		bladeFolder.add(this.grassParams, 'bladeWidth', 0.05, 0.5)
-			.onChange(this.recreateGrass.bind(this))
+			.onFinishChange(this.recreateGrass.bind(this))
 			.name('Blade Width');
 		bladeFolder.add(this.grassParams, 'grassBlades', 50000, 500000, 1000)
 			.onFinishChange(this.recreateGrass.bind(this))
