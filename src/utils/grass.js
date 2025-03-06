@@ -95,8 +95,8 @@ export function createGrassMesh(options = {}) {
             uBladeHeight: { value: bladeHeight },
             uBladeWidth: { value: bladeWidth }
         },
-        // transparent: true,
-        // depthTest: false,
+        transparent: true,
+        depthTest: false,
         vertexShader: `
         uniform float uTime;
         uniform float uWindSpeed;
