@@ -47,18 +47,16 @@ export function createGrassMesh(options = {}) {
     };
 
     const generateBladeIndices = (verticesCount) => {
-        const indices = new Uint32Array((verticesCount - 1) * 6);
-
-        for (let i = 0; i < verticesCount - 1; i++) {
-            indices[i * 6] = i;
-            indices[i * 6 + 1] = i + 1;
-            indices[i * 6 + 2] = verticesCount + i;
-
-            indices[i * 6 + 3] = i;
-            indices[i * 6 + 4] = verticesCount + i;
-            indices[i * 6 + 5] = verticesCount + i + 1;
+        // For a blade with verticesCount vertices, we can create triangles 
+        // connecting each adjacent pair of vertices with the first vertex
+        const indices = new Uint32Array((verticesCount - 2) * 3);
+        
+        for (let i = 0; i < verticesCount - 2; i++) {
+            indices[i * 3] = 0;  // First vertex (base of blade)
+            indices[i * 3 + 1] = i + 1;
+            indices[i * 3 + 2] = i + 2;
         }
-
+        
         return indices;
     };
 
